@@ -36,10 +36,11 @@ import com.learning.dashboard.ui.common.FullScreenMessage
 @Composable
 fun DashboardRoute(
     onCourseClick: (Int) -> Unit,
+    onLogout: () -> Unit,
     viewModel: DashboardViewModel = viewModel(factory = AppViewModelProvider.Factory),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    DashboardScreen(state = state, onRefresh = viewModel::refresh, onCourseClick = onCourseClick)
+    DashboardScreen(state = state, onRefresh = viewModel::refresh, onCourseClick = onCourseClick,onLogout = onLogout,  )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -48,12 +49,16 @@ fun DashboardScreen(
     state: DashboardUiState,
     onRefresh: () -> Unit,
     onCourseClick: (Int) -> Unit,
+    onLogout: () -> Unit,
 ) {
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("My Courses") },
-                actions = { TextButton(onClick = onRefresh) { Text("Refresh") } },
+                actions = {
+                    TextButton(onClick = onRefresh) { Text("Refresh") }
+                    TextButton(onClick = onLogout) { Text("Logout") }
+                },
             )
         },
     ) { padding ->
