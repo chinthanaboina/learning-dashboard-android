@@ -11,10 +11,16 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        val sessionStore = (application as LearningApp).container.sessionStore
         // A persisted session lets the app reopen straight into cached data while offline.
-        val isLoggedIn = (application as LearningApp).container.sessionStore.getToken() != null
+        val isLoggedIn = sessionStore.getToken() != null
         setContent {
-            MaterialTheme { AppNavHost(isLoggedIn = isLoggedIn) }
+            MaterialTheme {
+                AppNavHost(
+                    isLoggedIn = isLoggedIn,
+                    onLogout = { sessionStore.clear() },   // logout = delete the saved token
+                )
+            }
         }
     }
 }

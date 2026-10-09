@@ -1,26 +1,61 @@
-# Learning Dashboard (Android · Kotlin · Jetpack Compose)
+# Learning Dashboard – Android App
 
-**Run:** open in Android Studio (Koala+), run `app`. Login with any valid email and password `password123`.
-**APK:** `./gradlew assembleDebug` → `app/build/outputs/apk/debug/`. **Tests:** `./gradlew testDebugUnitTest`.
-The mock API (`FakeLearningApi`) reads `assets/courses.json`, adds 800 ms latency and fails with `IOException` when the device is really offline, so the offline demo behaves like a real network.
+**APK:** [Download app-debug.apk](https://github.com/<your-username>/<your-repo>/releases/tag/v1.0)
+**Demo video:** [Watch](https://drive.google.com/file/d/1ZHlNbE4cIdOlLrlbxQlIidsC86GzCSt5/view?usp=sharing)
 
-### 1. Architecture
-MVVM with a repository layer and unidirectional data flow: `Compose UI → ViewModel (StateFlow of sealed UI state) → CourseRepository → LearningApi + Room`. Each screen renders one immutable state, so loading/empty/error/success can't contradict each other. The repository is an interface, which is what makes the ViewModel testable with a fake (see `DashboardViewModelTest`). DI is a small manual `AppContainer` to keep the scope honest; Hilt is the next step in a real codebase. Progress is derived from lesson state (`Course.progress`), never stored separately, so it cannot drift.
+Built with **Kotlin**, **Jetpack Compose** (UI) and **Room** (local database).
 
-### 2. Offline support
-Offline-first with Room as the single source of truth. The UI only observes Room Flows; a refresh fetches courses + lessons and writes them in one transaction (`replaceCatalog`). If the refresh fails and a cache exists, the cached list is shown with an offline banner; with no cache, an error + retry. Marking a lesson complete writes locally first (`pendingSync = 1`), so it works offline and the UI updates instantly; pending completions are pushed on the next successful refresh, and a refresh never overwrites local completions. The session is persisted, so the app reopens offline straight into cached data.
+## How to run
+1. Open the project in Android Studio and press **Run ▶**.
+2. Login with any valid email and password **`password123`**.
+3. Run tests: `./gradlew testDebugUnitTest`
 
-### 3. Security
-Production: short-lived access token plus a refresh token handled by an OkHttp `Authenticator`; both encrypted with an AES-GCM key held in the **Android Keystore** (non-exportable, StrongBox where available) and persisted in DataStore; cleared on logout; excluded from backups; never logged. The demo uses plain SharedPreferences behind the `SessionStore` interface, so the swap is one class.
+The login and course API are **mocked**. Courses come from `assets/courses.json`.
+The mock API fails when the phone has no internet, so offline mode can be tested for real.
 
-### 4. Scale (1M users, hundreds of courses)
-1. Paging 3 + `RemoteMediator` and a lightweight list endpoint returning progress summaries; load lessons per course on demand instead of prefetching everything.
-2. Server-authoritative progress via idempotent "lesson completed" events, synced by WorkManager with backoff and network constraints.
-3. HTTP caching (ETag / `If-None-Match`) and a CDN for the catalog; an eviction policy for local data.
-4. Hilt + feature modularization for build times and team ownership.
-5. Observability and safe rollout: Crashlytics, performance traces, feature flags, staged Play rollouts.
+## 1. Architecture
+I used **MVVM with a Repository**:
 
-### 5. iOS / macOS
-Same layering one-to-one: SwiftUI views → `@Observable` view models exposing an enum state → a `CourseRepository` protocol → a `URLSession` + async/await API client and SwiftData (or Core Data) as the cache and source of truth. Keychain for tokens, `NWPathMonitor` for connectivity, `NavigationStack` for navigation, and XCTest with a fake repository for the same ViewModel test.
+```
+Screen  →  ViewModel  →  Repository  →  API + Local Database
+```
 
-**Note:** server-reported progress is converted to completed lessons (e.g. 40% of 16 → 6 lessons → shown as 38%), keeping a single source of truth.
+- **Screen** only shows data.
+- **ViewModel** holds the screen state (Loading, Success, Empty, Error).
+- **Repository** decides whether to use the API or the database.
+
+Each part has one job, so the code is easy to read, change and test.
+
+## 2. Offline Support
+- Courses and lessons are saved in a **Room database** on the phone.
+- The screens **always read from the database**, never directly from the API.
+- When online, the app downloads courses and saves them in the database.
+- When offline, the API call fails, but the saved courses are still shown with an "offline" message.
+- Marking a lesson complete is saved on the phone first, so it also works offline. It is sent to the server on the next refresh.
+
+## 3. Security
+In a real app I would:
+- Save the login token **encrypted**, using the **Android Keystore**.
+- Use a short-lived token and refresh it when it expires.
+- Delete the token and the user's saved data on logout.
+
+(In this demo the token is kept in SharedPreferences to keep it simple.)
+
+## 4. Scale (1 million users, hundreds of courses)
+1. **Load courses page by page** instead of all at once.
+2. **Load lessons only when a course is opened.**
+3. **Sync progress in the background** with WorkManager, retrying if it fails.
+4. **Cache API responses** and use a CDN to reduce server load.
+5. **Add crash reporting and monitoring** (e.g. Firebase Crashlytics).
+
+## 5. Building it on iOS
+I would use the same structure:
+- **SwiftUI** for screens
+- **ViewModel** classes for state
+- **URLSession** for API calls
+- **SwiftData / Core Data** for the offline database
+- **Keychain** for storing the token
+
+## Note
+Progress is calculated from completed lessons.
+Example: Generative AI has 6 of 16 lessons done, so it shows **38%**.

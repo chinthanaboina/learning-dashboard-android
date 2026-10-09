@@ -22,6 +22,7 @@ private object Routes {
 @Composable
 fun AppNavHost(
     isLoggedIn: Boolean,
+    onLogout: () -> Unit,
     navController: NavHostController = rememberNavController(),
 ) {
     NavHost(
@@ -35,14 +36,26 @@ fun AppNavHost(
                 }
             })
         }
-        composable(Routes.DASHBOARD) {
-            DashboardRoute(onCourseClick = { id -> navController.navigate(Routes.courseDetail(id)) })
-        }
+//        composable(Routes.DASHBOARD) {
+//            DashboardRoute(onCourseClick = { id -> navController.navigate(Routes.courseDetail(id)) })
+//        }
         composable(
             route = Routes.COURSE_DETAIL,
             arguments = listOf(navArgument(CourseDetailViewModel.COURSE_ID_ARG) { type = NavType.IntType }),
         ) {
             CourseDetailRoute(onBack = { navController.popBackStack() })
+        }
+
+        composable(Routes.DASHBOARD) {
+            DashboardRoute(
+                onCourseClick = { id -> navController.navigate(Routes.courseDetail(id)) },
+                onLogout = {
+                    onLogout()                                   // delete token
+                    navController.navigate(Routes.LOGIN) {       // go to login
+                        popUpTo(Routes.DASHBOARD) { inclusive = true }
+                    }
+                },
+            )
         }
     }
 }
