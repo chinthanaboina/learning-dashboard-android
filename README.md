@@ -1,6 +1,6 @@
 # Learning Dashboard – Android App
 
-**APK:** [Download app-debug.apk](https://github.com/<your-username>/<your-repo>/releases/tag/v1.0)
+**APK:** [Download app-debug.apk](https://github.com/chinthanaboina/learning-dashboard-android/releases/tag/v1.0)
 **Demo video:** [Watch](https://drive.google.com/file/d/1ZHlNbE4cIdOlLrlbxQlIidsC86GzCSt5/view?usp=sharing)
 
 Built with **Kotlin**, **Jetpack Compose** (UI) and **Room** (local database).
